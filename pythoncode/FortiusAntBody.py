@@ -270,10 +270,10 @@ def Initialize(pclv):
     clv         = pclv
     AntDongle   = None
     TacxTrainer = None
-    tcx         = None
+    tcx         = TCXexport.clsTcxExport()              #486 Do always 2025-09-02
     rpi         = raspberry.clsRaspberry(clv)
     rpi.DisplayState(constants.faStarted)
-    if clv.exportTCX: tcx = TCXexport.clsTcxExport()
+    #if clv.exportTCX: tcx = TCXexport.clsTcxExport()   #486 Removed 2025-09-02
 
     # --------------------------------------------------------------------------
     # Create Bluetooth Low Energy interface
