@@ -4,7 +4,10 @@
 #-------------------------------------------------------------------------------
 # Version info
 #-------------------------------------------------------------------------------
-__version__ = "2022-04-07"
+__version__ = "2025-09-05"
+# 2025-09-05    Tested, using Trainer Road
+# 2025-04-07    Delay as suggested by @AfromD due to #480 implemented
+#               Exactly three years after last update :-)
 # 2022-04-07    Improved messages on exception on BLE interface
 # 2022-03-28    When an exception occurs in bless, a stacktrace is created
 #               on BlessServer creation and start, all data in trace
@@ -34,7 +37,6 @@ from bless import (
         GATTCharacteristicProperties,
         GATTAttributePermissions
         )
-
 #-------------------------------------------------------------------------------
 # c l s B l e S e r v e r
 #-------------------------------------------------------------------------------
@@ -57,6 +59,7 @@ from bless import (
 #   Message         User message to indicate status of the BLE server
 #   ClientConnected Boolean, indicating that a client is connected
 #   BlessServer     to be used in child-class to access characteristics
+#                   because of execution delay, renamed to _BlessServer.
 #
 # Yes indeed, this class is not of much use for an application yet, the child
 # must implement the real functionality.
@@ -71,13 +74,20 @@ class clsBleServer:
     # Internal processing data
     #---------------------------------------------------------------------------
     OK                  = False         # FTMS is operational
-    BlessServer         = None          # The BlessServer instance
+    _BlessServer        = None          # The BlessServer instance
     loop                = None          # Loop instance to support BlessServer
     ClientConnected     = False         # copy of BlessServer.is_connected()
     ClientWasConnected  = False
 
     myServiceName       = "NoNameService"   # Provided on creation
     myGattDefinition    = "<not provided>"
+
+    #---------------------------------------------------------------------------
+    # To avoid timeing issues, slow down to not calling faster then once in 2ms
+    # As reported by #480 by @AfromD
+    #---------------------------------------------------------------------------
+    LastCallTime        = 0
+    MinInterval         = 1 / 500       # 500 times per second
 
     # --------------------------------------------------------------------------
     # _ _ i n i t _ _
@@ -99,6 +109,35 @@ class clsBleServer:
         # Note that __del__ is called too late to be able to close.
         #-----------------------------------------------------------------------
         atexit.register(self.Close)
+
+    # --------------------------------------------------------------------------
+    # s l o w   d o w n
+    # --------------------------------------------------------------------------
+    # Input     self.last_call_time
+    #
+    # Function  slows calling the bless library down
+    #
+    # Output    retself.last_call_time
+    # --------------------------------------------------------------------------
+    def slowdown(self):
+        CurrentTime = time.time()
+        ElapsedTime = CurrentTime - self.LastCallTime
+
+        if ElapsedTime < self.MinInterval:
+            # print ('BLE slowdown', self.MinInterval - ElapsedTime)
+            time.sleep(self.MinInterval - ElapsedTime)
+
+        self.LastCallTime = CurrentTime
+    #---------------------------------------------------------------------------
+    # Functions to avoid calling BLE too fast
+    #---------------------------------------------------------------------------
+    def BlessServer_update_value(self, a, b):
+        self.slowdown()
+        self._BlessServer.update_value(a, b)
+
+    def BlessServer_get_characteristic(self, a):
+        self.slowdown()
+        return self._BlessServer.get_characteristic(a)
 
     # --------------------------------------------------------------------------
     # O p e n
@@ -165,10 +204,10 @@ class clsBleServer:
 
         if self.OK:
             self.logfileWrite("clsBleServer._Server(): BlessServer(name='%s')" % self.myServiceName)
-            self.BlessServer = BlessServer(name=self.myServiceName, loop=self.loop)
+            self._BlessServer = BlessServer(name=self.myServiceName, loop=self.loop)
             
-            self.BlessServer.read_request_func  = self.ReadRequest
-            self.BlessServer.write_request_func = self.WriteRequest
+            self._BlessServer.read_request_func  = self.ReadRequest
+            self._BlessServer.write_request_func = self.WriteRequest
 
         #-----------------------------------------------------------------------
         # Add the gatt-services and start
@@ -184,7 +223,7 @@ class clsBleServer:
         exceptionMsg = ""
         if self.OK:
             try:
-                await self.BlessServer.add_gatt(self.myGattDefinition)
+                await self._BlessServer.add_gatt(self.myGattDefinition)
             except Exception as e:
                 self.OK = False
                 self.logfileTraceback(e)
@@ -194,7 +233,7 @@ class clsBleServer:
         self.logfileWrite("clsBleServer._Server(): self.BlessServer.start()")
         if self.OK:
             try:
-                await self.BlessServer.start()
+                await self._BlessServer.start()
             except Exception as e:
                 self.OK = False
                 self.logfileTraceback(e)
@@ -224,7 +263,7 @@ class clsBleServer:
             # There is no reason to stop, simply keep active untill the next
             #       client connects.
             #-------------------------------------------------------------------
-            self.ClientConnected = await self.BlessServer.is_connected()
+            self.ClientConnected = await self._BlessServer.is_connected()
                                # = len(self.BlessServer._subscribed_clients) > 0
 
             if not self.ClientConnected and self.ClientWasConnected:
@@ -240,7 +279,7 @@ class clsBleServer:
         #-----------------------------------------------------------------------
         if WeWereOK:
             self.logfileWrite("clsBleServer._Server(): self.BlessServer.stop()")
-            await self.BlessServer.stop()
+            await self._BlessServer.stop()
 
         #-----------------------------------------------------------------------
         # Logging

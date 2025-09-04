@@ -14,7 +14,10 @@
 #-------------------------------------------------------------------------------
 # Version info
 #-------------------------------------------------------------------------------
-__version__ = "2022-08-10"
+__version__ = "2025-09-05"
+# 2025-09-05    Tested, using Trainer Road.
+# 2025-04-07    Delay as suggested by @AfromD due to #480 implemented
+#               Instead of using BlessServer. call BlessServer_ functions!
 # 2022-08-10    Steering implemented according marcoveeneman and switchable's code
 # 2022-04-12    TargetMode is initially None, so that FortiusAnt knowns that no
 #               command is yet received.
@@ -355,8 +358,8 @@ class clsFTMS_bless(clsBleServer):
             flags = 0
             h     = int(self.HeartRate) & 0xff      # Avoid value anomalities
             info = struct.pack (bc.little_endian + bc.unsigned_char * 2, flags, h)
-            self.BlessServer.get_characteristic(bc.cHeartRateMeasurementUUID).value = info
-            self.BlessServer.update_value(bc.sHeartRateUUID, bc.cHeartRateMeasurementUUID)
+            self.BlessServer_get_characteristic(bc.cHeartRateMeasurementUUID).value = info
+            self.BlessServer_update_value(bc.sHeartRateUUID, bc.cHeartRateMeasurementUUID)
         else:
             self.logfileConsole("clsFTMS_bless.SetAthleteData() error, interface not open")
 
@@ -385,8 +388,8 @@ class clsFTMS_bless(clsBleServer):
             p     = int(self.CurrentPower)       & 0xffff      # Avoid value anomalities
             info  = struct.pack (bc.little_endian + bc.unsigned_short * 4, flags, s, c, p)
 
-            self.BlessServer.get_characteristic(bc.cIndoorBikeDataUUID).value = info
-            self.BlessServer.update_value(bc.sFitnessMachineUUID, bc.cIndoorBikeDataUUID)
+            self.BlessServer_get_characteristic(bc.cIndoorBikeDataUUID).value = info
+            self.BlessServer_update_value(bc.sFitnessMachineUUID, bc.cIndoorBikeDataUUID)
         else:
             self.logfileConsole("clsFTMS_bless.SetTrainerData() error, interface not open")
             
@@ -407,8 +410,8 @@ class clsFTMS_bless(clsBleServer):
         if self.OK:
             a    = SteeringAngle      # Avoid value anomalities here (if needed)
             info = struct.pack (bc.little_endian + bc.float, a)
-            self.BlessServer.get_characteristic(bc.cSteeringAngleUUID).value = info
-            self.BlessServer.update_value(bc.sSteeringUUID, bc.cSteeringAngleUUID)
+            self.BlessServer_get_characteristic(bc.cSteeringAngleUUID).value = info
+            self.BlessServer_update_value(bc.sSteeringUUID, bc.cSteeringAngleUUID)
         else:
             self.logfileConsole("clsFTMS_bless.SetSteeringAngle() error, interface not open")
 
@@ -634,7 +637,7 @@ class clsFTMS_bless(clsBleServer):
             ResponseCode = 0x80
             info = struct.pack(bc.little_endian + bc.unsigned_char * 3, ResponseCode, OpCode, ResultCode)
             characteristic.value = info
-            self.BlessServer.update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineControlPointUUID)
+            self.BlessServer_update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineControlPointUUID)
 
             if False:
                 self.logfileWrite("bleBless: New value for characteristic %s = %s" % (char, HexSpace(info)))
@@ -646,14 +649,14 @@ class clsFTMS_bless(clsBleServer):
     def notifyStartOrResume(self):
         self.logfileWrite("bleBless.notifyStartOrResume()")
         info = struct.pack(bc.little_endian + bc.unsigned_char, bc.fms_FitnessMachineStartedOrResumedByUser)
-        self.BlessServer.get_characteristic(bc.cFitnessMachineStatusUUID).value = info
-        self.BlessServer.update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
+        self.BlessServer_get_characteristic(bc.cFitnessMachineStatusUUID).value = info
+        self.BlessServer_update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
 
     def notifySetTargetPower(self):
         self.logfileWrite("bleBless.notifySetTargetPower()")
         info = struct.pack(bc.little_endian + bc.unsigned_char + bc.unsigned_short, bc.fms_TargetPowerChanged, self.TargetPower)
-        self.BlessServer.get_characteristic(bc.cFitnessMachineStatusUUID).value = info
-        self.BlessServer.update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
+        self.BlessServer_get_characteristic(bc.cFitnessMachineStatusUUID).value = info
+        self.BlessServer_update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
 
     def notifySetIndoorBikeSimulation(self):
         self.logfileWrite("bleBless.notifySetIndoorBikeSimulation()")
@@ -665,20 +668,20 @@ class clsFTMS_bless(clsBleServer):
 
         info = struct.pack(bc.little_endian + bc.unsigned_char + bc.short * 2 + bc.unsigned_char * 2,
                             bc.fms_IndoorBikeSimulationParametersChanged, windSpeed, grade, crr, cw)
-        self.BlessServer.get_characteristic(bc.cFitnessMachineStatusUUID).value = info
-        self.BlessServer.update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
+        self.BlessServer_get_characteristic(bc.cFitnessMachineStatusUUID).value = info
+        self.BlessServer_update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
 
     def notifyStopOrPause(self):
         self.logfileWrite("bleBless.notifyStopOrPause()")
         info = struct.pack(bc.little_endian + bc.unsigned_char, bc.fms_FitnessMachineStoppedOrPausedByUser)
-        self.BlessServer.get_characteristic(bc.cFitnessMachineStatusUUID).value = info
-        self.BlessServer.update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
+        self.BlessServer_get_characteristic(bc.cFitnessMachineStatusUUID).value = info
+        self.BlessServer_update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
 
     def notifyReset(self):
         self.logfileWrite("bleBless.notifyReset()")
         info = struct.pack(bc.little_endian + bc.unsigned_char, bc.fms_Reset)
-        self.BlessServer.get_characteristic(bc.cFitnessMachineStatusUUID).value = info
-        self.BlessServer.update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
+        self.BlessServer_get_characteristic(bc.cFitnessMachineStatusUUID).value = info
+        self.BlessServer_update_value(bc.sFitnessMachineUUID, bc.cFitnessMachineStatusUUID)
 
     # ------------------------------------------------------------------------------
     # S i m u l a t o r
