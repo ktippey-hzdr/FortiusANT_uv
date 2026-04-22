@@ -314,8 +314,8 @@ class clsTacxTrainer():
     BicycleWeight           = 10
     BicycleWheelDiameter    = None
     GearRatio               = None
-    UserWeight              = 75
-    UserAndBikeWeight       = 75 + 10       # defined according the standard (data page 51)
+    UserWeight              = 61
+    UserAndBikeWeight       = 61 + 10       # defined according the standard (data page 51)
 
     RollingResistance       = 0.004
     WindResistance          = 0.51          # 1.275 * 0.4 * 1.0
@@ -597,10 +597,10 @@ class clsTacxTrainer():
 
     def SetUserConfiguration(self, UserWeight, BicycleWeight, BicycleWheelDiameter, GearRatio):
         if debug.on(debug.Function):
-            logfile.Write ("SetUserConfiguration(%s[def=75kg], %s[def=10kg], %s, %s)" % (UserWeight, BicycleWeight, BicycleWheelDiameter, GearRatio))
+            logfile.Write ("SetUserConfiguration(%s[def=62kg], %s[def=10kg], %s, %s)" % (UserWeight, BicycleWeight, BicycleWheelDiameter, GearRatio))
 
-        if (UserWeight + BicycleWeight) < 70:
-            logfile.Console("The sun of User- and Bike weight is set to %d, which is below the expected minimum of 70kg; it's ignored." % (UserWeight + BicycleWeight))
+        if (UserWeight + BicycleWeight) < 60:
+            logfile.Console("The sum of User- and Bike weight is set to %d, which is below the expected minimum of 60kg; it's ignored." % (UserWeight + BicycleWeight))
         else:
             self.BicycleWeight          = BicycleWeight
             self.BicycleWheelDiameter   = BicycleWheelDiameter
@@ -792,8 +792,8 @@ class clsTacxTrainer():
     # Output        TargetPower
     #---------------------------------------------------------------------------
     def _Grade2Power(self):                                       #Grade2Power#
-        if self.UserAndBikeWeight < 70:
-            self.UserAndBikeWeight = 75 + 10
+        if self.UserAndBikeWeight < 60:
+            self.UserAndBikeWeight = 61 + 10
 
         self.__Grade2Power_Gribble()
 
